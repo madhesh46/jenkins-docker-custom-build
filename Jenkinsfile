@@ -3,7 +3,6 @@ pipeline {
     environment {
         IMAGE_NAME = "madhesh23/custom-build"
         IMAGE_TAG = "v1"
-        DOCKERHUB_CREDENTIALS = "dockerhub"
     }
     stages {
         stage('Checkout') {
@@ -11,29 +10,33 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Build Image') {
+        stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
             }
         }
         stage('Login to DockerHub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh 'echo $PASSWORD | docker login -u $USERNAME --password-stdin'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                 }
             }
         }
-        stage('Push to DockerHub') {
+        stage('Push Docker Image') {
             steps {
                 sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
             }
         }
-        stage('Cleanup') {
+        stage('Run Docker Container') {
             steps {
-                sh 'docker rmi $IMAGE_NAME:$IMAGE_TAG || true'
+                sh 'docker run --rm $IMAGE_NAME:$IMAGE_TAG echo "Container started successfully"'
             }
         }
     }
+    post {
+        always {
+            sh 'docker logout'
+        }
+    }
 }
-
 
