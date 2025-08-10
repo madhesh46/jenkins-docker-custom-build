@@ -28,15 +28,12 @@ pipeline {
             }
         }
         stage('Push Docker Image') {
-            when {
-                expression { 
-                    // Only push if previous stages succeeded (excluding trivy failure which is ignored)
-                    currentBuild.result == null || currentBuild.result == 'SUCCESS' 
-                }
-            }
             steps {
                 script {
-                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    }
                 }
             }
         }
