@@ -6,14 +6,6 @@ pipeline {
         TRIVY_SEVERITY = "HIGH,CRITICAL"
     }
     stages {
-        stage('Checkout SCM') {
-            steps {
-                checkout([$class: 'GitSCM', 
-                          branches: [[name: '*/main']], 
-                          userRemoteConfigs: [[url: 'https://github.com/madhesh46/jenkins-docker-custom-build.git', credentialsId: '93ec6fd9-1e40-41e3-81c4-50baaeddc1c4']]])
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 script {
