@@ -34,44 +34,76 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_CREDENTIALS = 'dockerhub'   // Your Jenkins credentials ID
+        IMAGE_NAME = 'madhesh23/ownimage'
+        IMAGE_TAG = "v${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Day 1: Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Day 2: Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                }
+            }
+        }
+
+        stage('Day 3: Trivy Vulnerability Scan') {
+            steps {
+                script {
+                    sh """
+                    trivy image --severity HIGH,CRITICAL --exit-code 0 \
+                    --no-progress ${IMAGE_NAME}:${IMAGE_TAG} | tee trivy_report.txt
+                    """
+                }
+            }
+        }
+
+        stage('Day 3: Push to DockerHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        """
                     }
                 }
             }
         }
 
-        stage('Run Container (Post-Deployment)') {
-            when {
-                expression {
-                    // Only run container if image was built and pushed
-                    return sh(script: "docker images -q ${IMAGE_NAME}:${IMAGE_TAG}", returnStdout: true).trim() != ''
-                }
-            }
+        stage('Day 4: Run Container Post Deployment') {
             steps {
                 script {
-                    // Stop & remove any existing container with same name
-                    sh "docker rm -f myapp_v1 || true"
-                    sh "docker run -d --name myapp_v1 --restart unless-stopped -p 9100:80 ${IMAGE_NAME}:${IMAGE_TAG}"
+                    // Stop old container if exists
+                    sh "docker rm -f ownimage_container || true"
+
+                    // Run new container
+                    sh "docker run -d --name ownimage_container --restart unless-stopped -p 9100:80 ${IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
 
-        stage('Cleanup') {
+        stage('Day 5: Cleanup Unused Docker Resources') {
             steps {
                 script {
-                    // Remove dangling images and stopped containers
-                    sh "docker container prune -f"
-                    sh "docker image prune -af"
+                    sh '''
+                    docker container prune -f
+                    docker image prune -af
+                    '''
                 }
             }
-        }
-    }
-    post {
-        failure {
-            echo 'Pipeline failed. Please check the logs.'
-        }
-        success {
-            echo 'Pipeline completed successfully with Docker build, scan, push, deployment, and cleanup!'
         }
     }
 }
