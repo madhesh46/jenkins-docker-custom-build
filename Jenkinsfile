@@ -36,14 +36,11 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 sh '''
-                    # Stop and remove any existing container gracefully
-                    if [ "$(docker ps -q -f name=ownimage-container)" ]; then
-                        docker stop ownimage-container
-                        docker rm ownimage-container
-                    fi
+                    # Remove any existing container
+                    docker rm -f ownimage-container || true
 
-                    # Run new container
-                    docker run -d --name ownimage-container -p 9100:80 $DOCKER_IMAGE:$BUILD_NUMBER
+                    # Run container with python app.py to keep it alive
+                    docker run -d --name ownimage-container -p 9100:80 $DOCKER_IMAGE:$BUILD_NUMBER python app.py
                 '''
             }
         }
