@@ -1,18 +1,19 @@
 pipeline {
     agent any
 
+    triggers {
+        pollSCM('*/2 * * * *') // Every 2 minutes
+    }
+
     environment {
         DOCKER_IMAGE = "madhesh23/ownimage"
         DOCKER_CREDENTIALS = "dockerhub"
     }
 
     stages {
-        stage('SCM Polling') {
+        stage('Checkout SCM') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[url: 'https://github.com/madhesh46/jenkins-docker-custom-build.git']]
-                ])
+                checkout scm
             }
         }
 
