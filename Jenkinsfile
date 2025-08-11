@@ -11,7 +11,7 @@ pipeline {
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage('SCM Polling') {
             steps {
                 checkout scm
             }
