@@ -1,22 +1,12 @@
 pipeline {
     agent any
 
-    triggers {
-        pollSCM('*/2 * * * *') // Every 2 minutes
-    }
-
     environment {
         DOCKER_IMAGE = "madhesh23/ownimage"
         DOCKER_CREDENTIALS = "dockerhub"
     }
 
     stages {
-        stage('SCM Polling') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $DOCKER_IMAGE:$BUILD_NUMBER .'
