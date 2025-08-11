@@ -8,7 +8,7 @@ pipeline {
     }
 
     stages {
-        stage('Day 1: Run Build inside Docker Container') {
+        stage('Build inside Docker Container') {
             steps {
                 script {
                     docker.image('python:3.12-slim').inside {
