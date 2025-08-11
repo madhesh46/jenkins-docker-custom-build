@@ -16,8 +16,8 @@ pipeline {
         stage('Run Container') {
             steps {
                 sh '''
-                    docker rm -f myapp || true
-                    docker run -d --name myapp -p 9100:80 $DOCKER_IMAGE:$BUILD_NUMBER
+                    docker rm -f ownimage-container || true
+                    docker run -d --name ownimage-container -p 9100:80 $DOCKER_IMAGE:$BUILD_NUMBER
                 '''
             }
         }
@@ -45,7 +45,7 @@ pipeline {
         stage('Clean Up') {
             steps {
                 sh '''
-                    docker rm -f myapp || true
+                    docker rm -f ownimage-container || true
                     docker rmi $DOCKER_IMAGE:$BUILD_NUMBER || true
                 '''
             }
