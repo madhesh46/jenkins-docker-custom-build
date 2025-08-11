@@ -4,16 +4,19 @@ pipeline {
     environment {
         DOCKER_IMAGE = "madhesh23/ownimage"
         DOCKER_TAG = "${BUILD_NUMBER}"
-        DOCKERHUB_CREDENTIALS = "dockerhub"  // Your Jenkins credential ID for DockerHub
+        DOCKERHUB_CREDENTIALS = "dockerhub"
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage('Day 1: Run Build inside Docker Container') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[url: 'https://github.com/madhesh46/jenkins-docker-custom-build.git']]
-                ])
+                script {
+                    docker.image('python:3.12-slim').inside {
+                        sh 'python --version'
+                        sh 'echo "Running inside Docker container for Day 1 task"'
+                        sh 'ls -l'
+                    }
+                }
             }
         }
 
@@ -25,7 +28,6 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                // Continue even if vulnerabilities found (change --exit-code if needed)
                 sh "trivy image --exit-code 1 --severity CRITICAL ${DOCKER_IMAGE}:${DOCKER_TAG} || true"
             }
         }
@@ -42,10 +44,7 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 script {
-                    // Remove old container if exists
                     sh 'docker rm -f ownimage-container || true'
-
-                    // Run container in detached mode, exposing port 9100
                     sh "docker run -d --name ownimage-container -p 9100:80 ${DOCKER_IMAGE}:${DOCKER_TAG} python app.py"
                 }
             }
