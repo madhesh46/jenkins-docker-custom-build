@@ -13,15 +13,6 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
-            steps {
-                sh '''
-                    docker rm -f ownimage-container || true
-                    docker run -d --name ownimage-container -p 9100:80 $DOCKER_IMAGE:$BUILD_NUMBER
-                '''
-            }
-        }
-
         stage('Trivy Scan') {
             steps {
                 sh '''
@@ -42,10 +33,36 @@ pipeline {
             }
         }
 
+        stage('Deploy Container') {
+            steps {
+                sh '''
+                    # Stop and remove any existing container gracefully
+                    if [ "$(docker ps -q -f name=ownimage-container)" ]; then
+                        docker stop ownimage-container
+                        docker rm ownimage-container
+                    fi
+
+                    # Run new container
+                    docker run -d --name ownimage-container -p 9100:80 $DOCKER_IMAGE:$BUILD_NUMBER
+                '''
+            }
+        }
+
+        stage('Container Health Check') {
+            steps {
+                script {
+                    def status = sh(script: 'docker inspect -f {{.State.Running}} ownimage-container', returnStdout: true).trim()
+                    if (status != 'true') {
+                        error "Container ownimage-container is not running!"
+                    }
+                }
+            }
+        }
+
         stage('Clean Up') {
             steps {
                 sh '''
-                    docker rm -f ownimage-container || true
+                    docker container prune -f
                     docker rmi $DOCKER_IMAGE:$BUILD_NUMBER || true
                 '''
             }
